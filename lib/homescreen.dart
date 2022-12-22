@@ -1,43 +1,64 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/container.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:internetconnectivityusingbloc/bloc/counterbloc/event.dart';
 
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:internetconnectivityusingbloc/bloc/apibloc/apievent.dart';
+import 'package:internetconnectivityusingbloc/repos/repositories.dart';
+
+import 'bloc/apibloc/apibloc.dart';
+import 'bloc/apibloc/apistate.dart';
 import 'bloc/counterbloc/count_bloc.dart';
-import 'bloc/counterbloc/state.dart';
+import 'repos/user_model.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final bloc = BlocProvider.of<CounterBloc>(context);
-    return Scaffold(
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FloatingActionButton(
-            child: Icon(Icons.add),
-            onPressed: () {
-              bloc.add(IncrementEvent());
-            },
-          ),
-          SizedBox(
-            width: 30,
-          ),
-          FloatingActionButton(
-            child: Icon(Icons.access_alarm_outlined),
-            onPressed: () => bloc.add(
-              DecrementEvent(),
-            ),
-          ),
-        ],
-      ),
-      body: Center(
-        child: BlocBuilder<CounterBloc, CounterState>(
+    return BlocProvider(
+      create: (context) =>
+          UserBloc(RepositoryProvider.of<UserRepositories>(context))
+            ..add(UserLoadingEvent()),
+      child: Scaffold(
+        body: BlocBuilder<UserBloc, UserState>(
           builder: (context, state) {
-            return Text('counter value ${bloc.state.counter}');
+            if (state is UserLoadingState) {
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+            if (state is UserLoadedState) {
+              List<UserModel> listUser = state.users;
+              return ListView.builder(
+                  itemCount: listUser.length,
+                  itemBuilder: (_, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Card(
+                        color: Colors.blue,
+                        elevation: 4,
+                        margin: EdgeInsets.symmetric(vertical: 10),
+                        child: ListTile(
+                          title: Text(
+                            listUser[index].firstName.toString(),
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          subtitle: Text(
+                            listUser[index].lastName.toString(),
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          trailing: CircleAvatar(
+                            backgroundImage:
+                                NetworkImage(listUser[index].avatar.toString()),
+                          ),
+                        ),
+                      ),
+                    );
+                  });
+            }
+            if (state is UserErrorState) {
+              return Text("Get Error");
+            }
+            return Container();
           },
         ),
       ),
